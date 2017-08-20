@@ -6,6 +6,8 @@
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
 	<meta http-equiv="X-UA-Compatible" content="ie=edge">
 	<title>Document</title>
+	<link rel="stylesheet/less" type="text/css" href="main.less" />
+	<script src="https://cdn.bootcss.com/less.js/3.0.0-pre.4/less.min.js"></script>
 	<script src="https://cdn.bootcss.com/require.js/2.3.4/require.min.js" defer async="true" data-main="main"></script>
 </head>
 
@@ -15,8 +17,10 @@
 	<div id="main" class="editorWrapper">
 		<div class="leftPanel">
 			<div class="inputWrapper">
-				<button id="btnAddImg">添加图片</button>
-				<button id="btnAddText">添加文本</button>
+				<button class="btnAddNode" data-node-type="img">添加图片</button>
+				<button class="btnAddNode" data-node-type="text">添加文本</button>
+				<button class="btnAddNode" data-node-type="s">添加？？</button>
+				<button id="testMeta">meta</button>
 			</div>
 		</div>
 		<div class="midPanel">
@@ -24,14 +28,16 @@
 				<button id="btnSave">保存</button>
 				<button id="btnPreview">预览</button>
 			</div>
-			<div class="showWrapper"></div>
+			<div class="restWrapper">
+				<div id="showWrapper" class="showWrapper editor"></div>
+			</div>
 		</div>
 		<div class="rightPanel">
 			<div class="attrWrapper">
 				<button id="btnBasicAttr">基本属性</button>
 			</div>
-			<div class="hyperWrapper">
-				<div id="hyperEditor"></div>
+			<div class="restWrapper">
+				<div id="attrEditor"></div>
 			</div>
 		</div>
 	</div>
