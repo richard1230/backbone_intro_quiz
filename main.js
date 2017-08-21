@@ -5,6 +5,7 @@ require.config({
 		underscore_string: "https://cdn.bootcss.com/underscore.string/3.3.4/underscore.string.min",
 		backbone: "https://cdn.bootcss.com/backbone.js/1.3.3/backbone-min",
 		localStorage: "https://cdn.bootcss.com/backbone-localstorage.js/1.1.16/backbone.localStorage-min",
+		// tinymce: "https://cdn.bootcss.com/tinymce/4.6.5/tinymce.min",
 	},
 	shim: {
 		underscore: {
@@ -18,6 +19,13 @@ require.config({
 			deps: ['underscore', 'jquery'],
 			exports: 'Backbone',
 		},
+		// tinymce: {
+		// 	exports: 'tinymce',
+		// 	init: function () {
+		// 		this.tinymce.DOM.events.domLoaded = true
+		// 		return this.tinymce
+		// 	}
+		// },
 		localStorage: {
 			deps: ['backbone']
 		},
@@ -25,153 +33,216 @@ require.config({
 });
 
 require(['underscore_string', 'backbone', 'localStorage'], function (_s, Backbone, LocalStorage) {
-	$(function () {
+	// log function wrapper
+	var info = console.log.bind(console)
+	var log = console.log.bind(console)
 
+	// window.tinymce = require(["tinymce"]) // ???
+	// tinymce()
+	// log("tiny", tinymce)
+	// setTimeout(function () {
+	// 	log("tiny", tinymce)
+	// }, 1000);
+	$(function () {
 		// namespace
 		bApp = {}
 
-		// log function wrapper
-		var info = console.log.bind(console)
-		var log = console.log.bind(console)
-
-
 		// default element
-		bApp.modelDefault = Backbone.Model.extend({
-			defaults: function () {
-				return {
-					type: "default",
-					nodeId: bApp.metaInfo.nextId(),
+		bApp.nodeDefault = {
+			model: Backbone.Model.extend({
+				defaults: function () {
+					return {
+						type: "default",
+						nodeId: bApp.metaInfo.nextId(),
+					}
 				}
-			}
-		})
-		bApp.viewDefault = Backbone.View.extend({
-			render: function () {
-				this.$el.html("<p>未定义元素</p>")
-				return this
-			}
-		})
-
+			}),
+			view: Backbone.View.extend({
+				render: function () {
+					this.$el.html("未定义元素")
+					return this
+				},
+				events: {
+					"click": "openEditor",
+				},
+				initialize: function () {
+					this.listenTo(this.model, "change", this.render)
+					this.listenTo(this.model, "destroy", this.remove)
+				},
+				openEditor: function () {
+					$(".itemFocused").removeClass("itemFocused")
+					this.$el.addClass("itemFocused")
+					var $view = new bApp.nodeDefault.editor({
+						model: this.model
+					})
+					bApp.main.$attrEditor.empty().append($view.render().el)
+				},
+			}),
+			editor: Backbone.View.extend({
+				temp: _.template(`
+					<button class="btnDelete">删除</button>
+				`),
+				events: {
+					"click .btnDelete": "deleteNode",
+				},
+				initialize: function () {
+					this.listenTo(this.model, "destroy", this.remove)
+				},
+				render: function () {
+					this.$el.html(this.temp(this.model.toJSON()))
+					return this
+				},
+				deleteNode: function () {
+					this.model.destroy()
+				},
+			}),
+		}
 		// text element
-		bApp.modelText = Backbone.Model.extend({
-			defaults: function () {
-				return {
-					type: "text",
-					html: "empty text",
-					nodeId: bApp.metaInfo.nextId(),
+		bApp.nodeText = {
+			model: Backbone.Model.extend({
+				defaults: function () {
+					return {
+						type: "text",
+						html: "empty text",
+						nodeId: bApp.metaInfo.nextId(),
+					}
 				}
-			}
-		})
-		bApp.viewText = Backbone.View.extend({
-			temp: _.template(`
-				<%= html %>
+			}),
+			view: Backbone.View.extend({
+				temp: _.template(`
+				<p><%= html %></p>
 			`),
-			events: {
-				"click": "openEditor",
-			},
-			initialize: function () {
-				this.listenTo(this.model, "change", this.render)
-			},
-			render: function () {
-				this.$el.html(this.temp(this.model.toJSON()))
-				return this
-			},
-			openEditor: function () {
-				$(".itemFocused").removeClass("itemFocused")
-				this.$el.addClass("itemFocused")
-				log(this.$el)
-				var $view = new bApp.textEditor({
-					model: this.model
-				})
-				bApp.main.$attrEditor.empty().append($view.render().el)
-			},
-		})
-		bApp.textEditor = Backbone.View.extend({
-			temp: _.template(`
-				<textarea name="" cols="30" rows="5"><%= html %></textarea>
-				<button>修改</button>
-			`),
-			events: {
-				"click button": "changeText"
-			},
-			initialize: function () {},
-			render: function () {
-				this.$el.html(this.temp(this.model.toJSON()))
-				return this
-			},
-			changeText: function () {
-				this.model.save({
-					html: this.$("textarea").val()
-				})
-				log(this.$("textarea").val())
-			},
-		})
+				events: {
+					"click": "openEditor",
+				},
+				initialize: function () {
+					this.listenTo(this.model, "change", this.render)
+					this.listenTo(this.model, "destroy", this.remove)
+				},
+				render: function () {
+					this.$el.html(this.temp(this.model.toJSON()))
+					return this
+				},
+				openEditor: function () {
+					$(".itemFocused").removeClass("itemFocused")
+					this.$el.addClass("itemFocused")
+					var $view = new bApp.nodeText.editor({
+						model: this.model
+					})
+					bApp.main.$attrEditor.empty().append($view.render().el)
+				},
+			}),
+			editor: Backbone.View.extend({
+				temp: _.template(`
+					<textarea id="textInputer" name="" cols="30" rows="5"><%= html %></textarea>
+					<button class="btnUpdate">修改</button>
+					<button class="btnDelete">删除</button>
+				`),
+				events: {
+					"click .btnUdpate": "modifyNode",
+					"click .btnDelete": "deleteNode",
+				},
+				initialize: function () {
+					this.openMce()
+					this.listenTo(this.model, "destroy", this.remove)
+				},
+				render: function () {
+					this.$el.html(this.temp(this.model.toJSON()))
+					return this
+				},
+				modifyNode: function () {
+					this.model.save({
+						html: this.$("#textInputer").val()
+					})
+				},
+				deleteNode: function () {
+					this.model.destroy()
+				},
+				openMce: function () {
+					var model = this.model
+					setTimeout(function () {
+						tinymce.EditorManager.editors = []
+						tinymce.init({
+							selector: "#textInputer",
+							setup: function (editor) {
+								editor.on('keyup change paste cut', function (e) {
+									model.save({
+										html: editor.getContent()
+									})
+								});
+							}
+						})
+					}, 0)
+				},
+			}),
+		}
 
 		// img element
-		bApp.modelImg = Backbone.Model.extend({
-			defaults: function () {
-				return {
-					type: "img",
-					src: "http://www.baidu.com/img/bd_logo1.png",
-					nodeId: bApp.metaInfo.nextId(),
+		bApp.nodeImg = {
+			model: Backbone.Model.extend({
+				defaults: function () {
+					return {
+						type: "img",
+						src: "http://www.baidu.com/img/bd_logo1.png",
+						nodeId: bApp.metaInfo.nextId(),
+					}
 				}
-			}
-		})
-		bApp.viewImg = Backbone.View.extend({
-			temp: _.template(`
+			}),
+			view: Backbone.View.extend({
+				temp: _.template(`
 				<img src="<%= src %>">
 			`),
-			events: {
-				"click": "openEditor",
-			},
-			initialize: function () {
-				this.listenTo(this.model, "change", this.render)
-			},
-			render: function () {
-				this.$el.html(this.temp(this.model.toJSON()))
-				// this.$el.html("<p>空的2内容</p>")
-				return this
-			},
-			openEditor: function () {
-				$(".itemFocused").removeClass("itemFocused")
-				this.$el.addClass("itemFocused")
-				var $view = new bApp.imgEditor({
-					model: this.model
-				})
-				bApp.main.$attrEditor.empty().append($view.render().el)
-			}
-		})
-		bApp.imgEditor = Backbone.View.extend({
-			temp: _.template(`
+				events: {
+					"click": "openEditor",
+				},
+				initialize: function () {
+					this.listenTo(this.model, "change", this.render)
+					this.listenTo(this.model, "destroy", this.remove)
+				},
+				render: function () {
+					this.$el.html(this.temp(this.model.toJSON()))
+					// this.$el.html("<p>空的2内容</p>")
+					return this
+				},
+				openEditor: function () {
+					$(".itemFocused").removeClass("itemFocused")
+					this.$el.addClass("itemFocused")
+					var $view = new bApp.nodeImg.editor({
+						model: this.model
+					})
+					bApp.main.$attrEditor.empty().append($view.render().el)
+				}
+			}),
+			editor: Backbone.View.extend({
+				temp: _.template(`
 				<textarea name="" cols="30" rows="5"><%= src %></textarea>
-				<button>修改</button>
+				<button class="btnUpdate">修改</button>
+				<button class="btnDelete">删除</button>
 			`),
-			events: {
-				"click button": "changeImg"
-			},
-			initialize: function () {},
-			render: function () {
-				this.$el.html(this.temp(this.model.toJSON()))
-				return this
-			},
-			changeImg: function () {
-				this.model.save({
-					src: this.$("textarea").val()
-				})
-			}
-		})
+				events: {
+					"click .btnUpdate": "modifyNode",
+					"click .btnDelete": "deleteNode",
+				},
+				initialize: function () {
+					this.listenTo(this.model, "destroy", this.remove)
+				},
+				render: function () {
+					this.$el.html(this.temp(this.model.toJSON()))
+					return this
+				},
+				modifyNode: function () {
+					this.model.save({
+						src: this.$("textarea").val()
+					})
+				},
+				deleteNode: function () {
+					this.model.destroy()
+				},
+			}),
+		}
 
 		// element collection
 		bApp.showList = new(Backbone.Collection.extend({
-			model: function (model, options) {
-				switch (model.type) {
-					case 'img':
-						return new bApp.modelImg(model, options);
-						break;
-					case 'text':
-						return new bApp.modelText(model, options);
-						break;
-				}
-			},
 			localStorage: new LocalStorage("localList"),
 		}))()
 
@@ -209,20 +280,22 @@ require(['underscore_string', 'backbone', 'localStorage'], function (_s, Backbon
 				bApp.showList.fetch()
 			},
 			renderOne: function (item) {
-				var viewType = "view" + _s.capitalize(item.get("type"))
-				var $view = new(bApp[viewType] ? bApp[viewType] : bApp["viewDefault"])({
+				var nodeType = "node" + _s.capitalize(item.get("type"))
+				var node = bApp[nodeType] ? bApp[nodeType] : bApp["nodeDefault"]
+				var view = new node.view({
 					model: item
 				})
-				this.$showWtrapper.append($view.render().el)
+				this.$showWtrapper.append(view.render().el)
 			},
 
 			// renderAll: function () {
 			// 	bApp.showList.each(this.renderOne, this)
 			// },
 			addNewEle: function (e) {
-				var modelType = "model" + _s.capitalize($(e.target).data("node-type"))
+				var nodeType = "node" + _s.capitalize($(e.target).data("node-type"))
+				var node = bApp[nodeType] ? bApp[nodeType] : bApp["nodeDefault"]
 				bApp.showList.create(
-					bApp[modelType] ? new bApp[modelType] : new bApp["modelDefault"]
+					new node.model
 				)
 			}
 		}))()

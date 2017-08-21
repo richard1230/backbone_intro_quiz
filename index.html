@@ -8,6 +8,7 @@
 	<title>Document</title>
 	<link rel="stylesheet/less" type="text/css" href="main.less" />
 	<script src="https://cdn.bootcss.com/less.js/3.0.0-pre.4/less.min.js"></script>
+	<script src="https://cdn.bootcss.com/tinymce/4.6.5/tinymce.min.js"></script>
 	<script src="https://cdn.bootcss.com/require.js/2.3.4/require.min.js" defer async="true" data-main="main"></script>
 </head>
 
@@ -22,19 +23,21 @@
 				<button class="btnAddNode" data-node-type="s">添加？？</button>
 				<button id="testMeta">meta</button>
 			</div>
-		</div>
-		<div class="midPanel">
 			<div class="actionWrapper">
-				<button id="btnSave">保存</button>
+				<!-- <button id="btnSave">保存</button> -->
 				<button id="btnPreview">预览</button>
 			</div>
+		</div>
+		<div class="midPanel">
 			<div class="restWrapper">
 				<div id="showWrapper" class="showWrapper editor"></div>
 			</div>
 		</div>
 		<div class="rightPanel">
 			<div class="attrWrapper">
-				<button id="btnBasicAttr">基本属性</button>
+				<h4>
+					基本属性
+				</h4>
 			</div>
 			<div class="restWrapper">
 				<div id="attrEditor"></div>
