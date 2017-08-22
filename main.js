@@ -1,11 +1,13 @@
 require.config({
 	paths: {
 		jquery: "https://cdn.bootcss.com/jquery/3.2.1/jquery.min",
+		jqueryui: "https://cdn.bootcss.com/jqueryui/1.12.1/jquery-ui",
 		underscore: "https://cdn.bootcss.com/underscore.js/1.8.3/underscore-min",
 		underscore_string: "https://cdn.bootcss.com/underscore.string/3.3.4/underscore.string.min",
 		backbone: "https://cdn.bootcss.com/backbone.js/1.3.3/backbone-min",
 		localStorage: "https://cdn.bootcss.com/backbone-localstorage.js/1.1.16/backbone.localStorage-min",
-		// tinymce: "https://cdn.bootcss.com/tinymce/4.6.5/tinymce.min",
+		bootstrap: "https://cdn.bootcss.com/bootstrap/3.3.7/js/bootstrap.min",
+		bootbox: "https://cdn.bootcss.com/bootbox.js/4.4.0/bootbox.min",
 	},
 	shim: {
 		underscore: {
@@ -19,84 +21,31 @@ require.config({
 			deps: ['underscore', 'jquery'],
 			exports: 'Backbone',
 		},
-		// tinymce: {
-		// 	exports: 'tinymce',
-		// 	init: function () {
-		// 		this.tinymce.DOM.events.domLoaded = true
-		// 		return this.tinymce
-		// 	}
-		// },
 		localStorage: {
-			deps: ['backbone']
+			deps: ['backbone'],
 		},
+		bootbox: {
+			deps: ['jquery', 'bootstrap'],
+			exports: 'bootbox'
+		},
+		bootstrap: {
+			deps: ['jquery'],
+		},
+		jqueryui: {
+			deps: ['jquery'],
+		}
 	},
-});
+})
 
-require(['underscore_string', 'backbone', 'localStorage'], function (_s, Backbone, LocalStorage) {
+require(['underscore_string', 'backbone', 'localStorage', 'bootbox', 'jqueryui', 'nodeDefault'], function (_s, Backbone, LocalStorage, bootbox) {
 	// log function wrapper
 	var info = console.log.bind(console)
 	var log = console.log.bind(console)
-
-	// window.tinymce = require(["tinymce"]) // ???
-	// tinymce()
-	// log("tiny", tinymce)
-	// setTimeout(function () {
-	// 	log("tiny", tinymce)
-	// }, 1000);
 	$(function () {
 		// namespace
-		bApp = {}
-
+		window.bApp = {}
+		bApp.nodeDefault = require('nodeDefault')
 		// default element
-		bApp.nodeDefault = {
-			model: Backbone.Model.extend({
-				defaults: function () {
-					return {
-						type: "default",
-						nodeId: bApp.metaInfo.nextId(),
-					}
-				}
-			}),
-			view: Backbone.View.extend({
-				render: function () {
-					this.$el.html("未定义元素")
-					return this
-				},
-				events: {
-					"click": "openEditor",
-				},
-				initialize: function () {
-					this.listenTo(this.model, "change", this.render)
-					this.listenTo(this.model, "destroy", this.remove)
-				},
-				openEditor: function () {
-					$(".itemFocused").removeClass("itemFocused")
-					this.$el.addClass("itemFocused")
-					var $view = new bApp.nodeDefault.editor({
-						model: this.model
-					})
-					bApp.main.$attrEditor.empty().append($view.render().el)
-				},
-			}),
-			editor: Backbone.View.extend({
-				temp: _.template(`
-					<button class="btnDelete">删除</button>
-				`),
-				events: {
-					"click .btnDelete": "deleteNode",
-				},
-				initialize: function () {
-					this.listenTo(this.model, "destroy", this.remove)
-				},
-				render: function () {
-					this.$el.html(this.temp(this.model.toJSON()))
-					return this
-				},
-				deleteNode: function () {
-					this.model.destroy()
-				},
-			}),
-		}
 		// text element
 		bApp.nodeText = {
 			model: Backbone.Model.extend({
@@ -105,6 +54,7 @@ require(['underscore_string', 'backbone', 'localStorage'], function (_s, Backbon
 						type: "text",
 						html: "empty text",
 						nodeId: bApp.metaInfo.nextId(),
+						ordinal: bApp.metaInfo.nextOrdinal()
 					}
 				}
 			}),
@@ -114,14 +64,19 @@ require(['underscore_string', 'backbone', 'localStorage'], function (_s, Backbon
 			`),
 				events: {
 					"click": "openEditor",
+					"dragDropped": "fireDropped",
 				},
 				initialize: function () {
 					this.listenTo(this.model, "change", this.render)
 					this.listenTo(this.model, "destroy", this.remove)
 				},
+
 				render: function () {
 					this.$el.html(this.temp(this.model.toJSON()))
 					return this
+				},
+				fireDropped: function (event, newIndex) {
+					this.$el.trigger("droppedEvent", [this.model, newIndex])
 				},
 				openEditor: function () {
 					$(".itemFocused").removeClass("itemFocused")
@@ -169,7 +124,7 @@ require(['underscore_string', 'backbone', 'localStorage'], function (_s, Backbon
 									model.save({
 										html: editor.getContent()
 									})
-								});
+								})
 							}
 						})
 					}, 0)
@@ -185,6 +140,7 @@ require(['underscore_string', 'backbone', 'localStorage'], function (_s, Backbon
 						type: "img",
 						src: "http://www.baidu.com/img/bd_logo1.png",
 						nodeId: bApp.metaInfo.nextId(),
+						ordinal: bApp.metaInfo.nextOrdinal()
 					}
 				}
 			}),
@@ -244,6 +200,14 @@ require(['underscore_string', 'backbone', 'localStorage'], function (_s, Backbon
 		// element collection
 		bApp.showList = new(Backbone.Collection.extend({
 			localStorage: new LocalStorage("localList"),
+			saveAll: function () {
+				_.each(this.models, function (item) {
+					item.save()
+				})
+			},
+			comparator: function (model) {
+				return model.get('ordinal')
+			},
 		}))()
 
 		// meta info
@@ -261,6 +225,9 @@ require(['underscore_string', 'backbone', 'localStorage'], function (_s, Backbon
 				})
 				return this.get("currentId")
 			},
+			nextOrdinal: function () {
+				return (bApp.showList.length ? bApp.showList.last().get("ordinal") + 1 : 0)
+			}
 		}))({
 			id: "metaInfo"
 		})
@@ -270,33 +237,74 @@ require(['underscore_string', 'backbone', 'localStorage'], function (_s, Backbon
 			el: $("#main"),
 			events: {
 				"click .btnAddNode": "addNewEle",
+				"click #btnPreview": "showPreview",
+				"droppedEvent": "updateShowList",
+				"click #btnSaveAll": "saveList",
 			},
 			initialize: function () {
 				this.$showWtrapper = this.$("#showWrapper")
 				this.$attrEditor = this.$("#attrEditor")
 				this.listenTo(bApp.showList, "add", this.renderOne)
-				// this.listenTo(bApp.showList, "change", this.renderOne)
-				this.listenTo(bApp.showList, "all", this.renderAll)
-				bApp.showList.fetch()
-			},
-			renderOne: function (item) {
-				var nodeType = "node" + _s.capitalize(item.get("type"))
-				var node = bApp[nodeType] ? bApp[nodeType] : bApp["nodeDefault"]
-				var view = new node.view({
-					model: item
+				this.listenTo(bApp.showList, "reset", this.renderAll)
+				// this.listenTo(bApp.showList, "all", this.renderAll)
+				bApp.showList.fetch({
+					reset: true,
 				})
-				this.$showWtrapper.append(view.render().el)
+				this.$showWtrapper.sortable({
+					stop: function (event, ui) {
+						// log(event, ui)
+						ui.item.trigger('dragDropped', ui.item.index());
+					}
+				})
 			},
-
-			// renderAll: function () {
-			// 	bApp.showList.each(this.renderOne, this)
-			// },
+			saveList: function () {
+				bApp.showList.saveAll()
+			},
+			updateShowList: function (event, model, newIndex) {
+				var oldIndex = bApp.showList.indexOf(model)
+				// log(oldIndex, newIndex)
+				bApp.showList.remove(model);
+				bApp.showList.each(function (model, index) {
+					var ordinal = index
+					if (index >= newIndex)
+						ordinal += 1
+					model.set('ordinal', ordinal)
+				})
+				model.set('ordinal', newIndex)
+				bApp.showList.add(model, {
+					at: newIndex,
+					ignore: true,
+				})
+				bApp.showList.saveAll()
+			},
+			renderOne: function (item, list, options) {
+				// log("renderOne", item, list, options)
+				if (!options.ignore) {
+					var nodeType = "node" + _s.capitalize(item.get("type"))
+					var node = bApp[nodeType] ? bApp[nodeType] : bApp["nodeDefault"]
+					var view = new node.view({
+						model: item
+					})
+					this.$showWtrapper.append(view.render().el)
+				}
+			},
+			renderAll: function () {
+				log("renderAll")
+				bApp.showList.each(this.renderOne, this)
+			},
 			addNewEle: function (e) {
 				var nodeType = "node" + _s.capitalize($(e.target).data("node-type"))
 				var node = bApp[nodeType] ? bApp[nodeType] : bApp["nodeDefault"]
 				bApp.showList.create(
 					new node.model
 				)
+			},
+			showPreview: function () {
+				log(bootbox)
+				bootbox.alert({
+					title: '预览',
+					message: $('#showWrapper').html()
+				})
 			}
 		}))()
 		info("loaded")
