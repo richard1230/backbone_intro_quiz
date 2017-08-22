@@ -53,8 +53,7 @@ require(['underscore_string', 'backbone', 'localStorage', 'bootbox', 'jqueryui',
 					return {
 						type: "text",
 						html: "empty text",
-						nodeId: bApp.metaInfo.nextId(),
-						ordinal: bApp.metaInfo.nextOrdinal()
+						id: "text" + bApp.metaInfo.nextId(),
 					}
 				}
 			}),
@@ -70,9 +69,9 @@ require(['underscore_string', 'backbone', 'localStorage', 'bootbox', 'jqueryui',
 					this.listenTo(this.model, "change", this.render)
 					this.listenTo(this.model, "destroy", this.remove)
 				},
-
 				render: function () {
 					this.$el.html(this.temp(this.model.toJSON()))
+					this.$el.data("node-id", this.model.get("id"))
 					return this
 				},
 				fireDropped: function (event, newIndex) {
@@ -139,8 +138,7 @@ require(['underscore_string', 'backbone', 'localStorage', 'bootbox', 'jqueryui',
 					return {
 						type: "img",
 						src: "http://www.baidu.com/img/bd_logo1.png",
-						nodeId: bApp.metaInfo.nextId(),
-						ordinal: bApp.metaInfo.nextOrdinal()
+						id: "img" + bApp.metaInfo.nextId(),
 					}
 				}
 			}),
@@ -150,14 +148,19 @@ require(['underscore_string', 'backbone', 'localStorage', 'bootbox', 'jqueryui',
 			`),
 				events: {
 					"click": "openEditor",
+					"dragDropped": "fireDropped",
 				},
 				initialize: function () {
 					this.listenTo(this.model, "change", this.render)
 					this.listenTo(this.model, "destroy", this.remove)
 				},
+				fireDropped: function (event, newIndex) {
+					this.$el.trigger("droppedEvent", [this.model, newIndex])
+				},
 				render: function () {
 					this.$el.html(this.temp(this.model.toJSON()))
 					// this.$el.html("<p>空的2内容</p>")
+					this.$el.data("node-id", this.model.get("id"))
 					return this
 				},
 				openEditor: function () {
@@ -205,8 +208,8 @@ require(['underscore_string', 'backbone', 'localStorage', 'bootbox', 'jqueryui',
 					item.save()
 				})
 			},
-			comparator: function (model) {
-				return model.get('ordinal')
+			saveAll: function () {
+				localStorage.setItem("localListRaw", JSON.stringify(this.toJSON()))
 			},
 		}))()
 
@@ -225,9 +228,6 @@ require(['underscore_string', 'backbone', 'localStorage', 'bootbox', 'jqueryui',
 				})
 				return this.get("currentId")
 			},
-			nextOrdinal: function () {
-				return (bApp.showList.length ? bApp.showList.last().get("ordinal") + 1 : 0)
-			}
 		}))({
 			id: "metaInfo"
 		})
@@ -242,7 +242,7 @@ require(['underscore_string', 'backbone', 'localStorage', 'bootbox', 'jqueryui',
 				"click #btnSaveAll": "saveList",
 			},
 			initialize: function () {
-				this.$showWtrapper = this.$("#showWrapper")
+				this.$showWrapper = this.$("#showWrapper")
 				this.$attrEditor = this.$("#attrEditor")
 				this.listenTo(bApp.showList, "add", this.renderOne)
 				this.listenTo(bApp.showList, "reset", this.renderAll)
@@ -250,10 +250,21 @@ require(['underscore_string', 'backbone', 'localStorage', 'bootbox', 'jqueryui',
 				bApp.showList.fetch({
 					reset: true,
 				})
-				this.$showWtrapper.sortable({
-					stop: function (event, ui) {
+				this.$showWrapper.sortable({
+					update: function (event, ui) {
+						localStorage.setItem("localList",
+							Array.prototype.map.call(
+								$("#showWrapper").children(),
+								function (e) {
+									return $(e).data("node-id")
+								}
+							).join(",")
+						)
 						// log(event, ui)
-						ui.item.trigger('dragDropped', ui.item.index());
+						// ui.item.trigger('dragDropped', ui.item.index());
+						// this.$showWrapper.children().each(function(i,e){
+						// 	$(e).data()
+						// })
 					}
 				})
 			},
@@ -261,21 +272,22 @@ require(['underscore_string', 'backbone', 'localStorage', 'bootbox', 'jqueryui',
 				bApp.showList.saveAll()
 			},
 			updateShowList: function (event, model, newIndex) {
-				var oldIndex = bApp.showList.indexOf(model)
-				// log(oldIndex, newIndex)
-				bApp.showList.remove(model);
-				bApp.showList.each(function (model, index) {
-					var ordinal = index
-					if (index >= newIndex)
-						ordinal += 1
-					model.set('ordinal', ordinal)
-				})
-				model.set('ordinal', newIndex)
-				bApp.showList.add(model, {
-					at: newIndex,
-					ignore: true,
-				})
-				bApp.showList.saveAll()
+				this.$showWrapper.children()
+				// var oldIndex = bApp.showList.indexOf(model)
+				// // log(oldIndex, newIndex)
+				// bApp.showList.remove(model);
+				// bApp.showList.each(function (model, index) {
+				// 	var ordinal = index
+				// 	if (index >= newIndex)
+				// 		ordinal += 1
+				// 	model.set('ordinal', ordinal)
+				// })
+				// model.set('ordinal', newIndex)
+				// bApp.showList.add(model, {
+				// 	at: newIndex,
+				// 	ignore: true,
+				// })
+				// bApp.showList.saveAll()
 			},
 			renderOne: function (item, list, options) {
 				// log("renderOne", item, list, options)
@@ -285,7 +297,7 @@ require(['underscore_string', 'backbone', 'localStorage', 'bootbox', 'jqueryui',
 					var view = new node.view({
 						model: item
 					})
-					this.$showWtrapper.append(view.render().el)
+					this.$showWrapper.append(view.render().el)
 				}
 			},
 			renderAll: function () {
