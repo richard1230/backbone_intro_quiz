@@ -1,0 +1,17 @@
+@media all {.div_8ce3dW{display:  flex; flex-flow:  row wrap; place-content:  flex-start center; align-items:  flex-start; justify-content: flex-start; }
+.btn-action{min-width: 60px; margin-right: 4px; margin-bottom: 4px; }
+.div_KGGOgv{padding:  0px; width:  200px; flex:  1 1 0%; flex-grow: 0; flex-shrink: 1; flex-basis: auto; }
+.div_lNDOGj{display:  flex; height:  100px; }
+.app-main{height: 80vh; }
+.panel-common{padding: 8px; border-right: 1px solid hsl(0,0%,70%); border-bottom: 1px solid hsl(0,0%,70%); }
+.div_tv1sw8{width:  400px; flex:  1 1 0%; display:  flex; flex-direction: column; }
+.div_0rgESp{width:  200px; flex:  1 1 0%; display:  flex; flex-direction: column; }
+.panel-component{border-bottom: 1px solid hsl(0,0%,70%); margin-bottom: 8px; }
+.div_ppOfeF{flex:  1 1 0%; box-shadow:  rgba(0, 0, 0, 0.07) 0px 0px 0px 4px; border-width:  1px; border-style:  dashed; border-color:  rgb(204, 204, 204); border-bottom-color: rgba(204,204,204,1); border-top-color: rgba(204,204,204,1); border-right-color: rgba(204,204,204,1); border-left-color: rgba(204,204,204,1); }
+.div_fEwAwl{flex-grow: 1; flex-shrink: 1; flex-basis: 0%; }
+} 
+@media (max-width: 991px) {} 
+@media (max-width: 767px) {} 
+@media (min-width: 768px) {} 
+@media (min-width: 992px) {} 
+@media (min-width: 768px) and (max-width: 991px) {} 
