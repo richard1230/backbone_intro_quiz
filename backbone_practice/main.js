@@ -72,6 +72,11 @@ require(
 				saveAll: function () {
 					localStorage.setItem("localListRaw", JSON.stringify(this.toJSON()))
 				},
+				moveModel: function (oldIndex, newIndex) {
+					this.models.splice(newIndex, 0,
+						this.models.splice(oldIndex, 1)[0]
+					);
+				},
 			}))()
 
 			// meta info
@@ -101,7 +106,6 @@ require(
 					"click #btnPreview": "showPreview",
 					"click #btnSaveAll": "saveList",
 					"click #btnClearAll": "clearAll",
-					"droppedEvent": "updateShowList",
 				},
 				initialize: function () {
 					__this = this
@@ -134,6 +138,11 @@ require(
 					bApp.main.$attrEditor.empty().append($view.render().el)
 				},
 				updateList: function (event, ui) {
+					//! resort collection
+					var oldIndex = bApp.showList.pluck("id").indexOf(ui.item.data("node-id"))
+					var newIndex = ui.item.index()
+					bApp.showList.moveModel(oldIndex, newIndex)
+					//! localstorage patch
 					localStorage.setItem("localList",
 						Array.prototype.map.call(
 							$("#showWrapper").children(),
@@ -142,7 +151,7 @@ require(
 							}
 						).join(",")
 					)
-					this.saveList()
+					// this.saveList()
 				},
 				saveList: function () {
 					bApp.showList.saveAll()
