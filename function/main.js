@@ -1,7 +1,6 @@
 require.config({
 	paths: {
 		jquery: "https://cdn.bootcss.com/jquery/3.2.1/jquery.min",
-		// jquery: "thirdparty_js/jquery-1.8.1.min",
 		jqueryui: "https://cdn.bootcss.com/jqueryui/1.12.1/jquery-ui",
 		underscore: "https://cdn.bootcss.com/underscore.js/1.8.3/underscore-min",
 		underscore_string: "https://cdn.bootcss.com/underscore.string/3.3.4/underscore.string.min",
@@ -38,27 +37,23 @@ require.config({
 	},
 })
 
-
-require(['underscore_string', 'backbone', 'localStorage', 'bootbox', 'jqueryui'], function (_s, Backbone, LocalStorage, bootbox) {
+require(['underscore_string', 'backbone', 'localStorage', 'bootbox', 'jqueryui', 'nodeDefault'], function (_s, Backbone, LocalStorage, bootbox) {
 	// log function wrapper
 	var info = console.log.bind(console)
 	var log = console.log.bind(console)
 	$(function () {
 		// namespace
-		window.bApp = {
-			a: 1
-		}
-		// bApp.nodeDefault = require('nodeDefault')
+		window.bApp = {}
+		bApp.nodeDefault = require('nodeDefault')
 		// default element
-
 		// text element
 		bApp.nodeText = {
-			n: this,
 			model: Backbone.Model.extend({
 				defaults: function () {
 					return {
 						type: "text",
 						html: "empty text",
+						id: "text" + bApp.metaInfo.nextId(),
 					}
 				}
 			}),
@@ -67,7 +62,7 @@ require(['underscore_string', 'backbone', 'localStorage', 'bootbox', 'jqueryui']
 				<p><%= html %></p>
 			`),
 				events: {
-					"click": "renderEditor",
+					"click": "openEditor",
 					"dragDropped": "fireDropped",
 				},
 				initialize: function () {
@@ -82,18 +77,12 @@ require(['underscore_string', 'backbone', 'localStorage', 'bootbox', 'jqueryui']
 				fireDropped: function (event, newIndex) {
 					this.$el.trigger("droppedEvent", [this.model, newIndex])
 				},
-				renderEditor: function () {
+				openEditor: function () {
 					$(".itemFocused").removeClass("itemFocused")
 					this.$el.addClass("itemFocused")
 					var $view = new bApp.nodeText.editor({
 						model: this.model
 					})
-					Backbone.cache = {
-						view: {
-							editor: $view,
-						},
-					}
-					Backbone.trigger("openEditor", this.model)
 					bApp.main.$attrEditor.empty().append($view.render().el)
 				},
 			}),
@@ -149,7 +138,7 @@ require(['underscore_string', 'backbone', 'localStorage', 'bootbox', 'jqueryui']
 					return {
 						type: "img",
 						src: "http://www.baidu.com/img/bd_logo1.png",
-						// id: "img" + bApp.metaInfo.nextId(),
+						id: "img" + bApp.metaInfo.nextId(),
 					}
 				}
 			}),
@@ -158,7 +147,7 @@ require(['underscore_string', 'backbone', 'localStorage', 'bootbox', 'jqueryui']
 				<img src="<%= src %>">
 			`),
 				events: {
-					"click": "renderEditor",
+					"click": "openEditor",
 					"dragDropped": "fireDropped",
 				},
 				initialize: function () {
@@ -174,7 +163,7 @@ require(['underscore_string', 'backbone', 'localStorage', 'bootbox', 'jqueryui']
 					this.$el.data("node-id", this.model.get("id"))
 					return this
 				},
-				renderEditor: function () {
+				openEditor: function () {
 					$(".itemFocused").removeClass("itemFocused")
 					this.$el.addClass("itemFocused")
 					var $view = new bApp.nodeImg.editor({
@@ -245,81 +234,90 @@ require(['underscore_string', 'backbone', 'localStorage', 'bootbox', 'jqueryui']
 
 		// app start
 		bApp.main = new(Backbone.View.extend({
-			el: $("#mainWrapper"),
+			el: $("#main"),
 			events: {
-				"click .btnAddEle": "addNewEle",
-				// "click .btn-action": "addNewEle2",
+				"click .btnAddNode": "addNewEle",
 				"click #btnPreview": "showPreview",
 				"droppedEvent": "updateShowList",
 				"click #btnSaveAll": "saveList",
 			},
-			lo: function () {
-				log(arguments)
-			},
 			initialize: function () {
-				$this = this
 				this.$showWrapper = this.$("#showWrapper")
-				this.$attrEditor = this.$("#editorWrapper")
+				this.$attrEditor = this.$("#attrEditor")
 				this.listenTo(bApp.showList, "add", this.renderOne)
 				this.listenTo(bApp.showList, "reset", this.renderAll)
-				Backbone.on("openEditor", this.lo, this)
-
 				// this.listenTo(bApp.showList, "all", this.renderAll)
 				bApp.showList.fetch({
 					reset: true,
 				})
 				this.$showWrapper.sortable({
 					update: function (event, ui) {
-						$this.updateList(event, ui)
+						localStorage.setItem("localList",
+							Array.prototype.map.call(
+								$("#showWrapper").children(),
+								function (e) {
+									return $(e).data("node-id")
+								}
+							).join(",")
+						)
+						// log(event, ui)
+						// ui.item.trigger('dragDropped', ui.item.index());
+						// this.$showWrapper.children().each(function(i,e){
+						// 	$(e).data()
+						// })
 					}
 				})
-			},
-			updateList: function (event, ui) {
-				localStorage.setItem("localList",
-					Array.prototype.map.call(
-						$("#showWrapper").children(),
-						function (e) {
-							return $(e).data("node-id")
-						}
-					).join(",")
-				)
-				this.saveList()
 			},
 			saveList: function () {
 				bApp.showList.saveAll()
 			},
+			updateShowList: function (event, model, newIndex) {
+				this.$showWrapper.children()
+				// var oldIndex = bApp.showList.indexOf(model)
+				// // log(oldIndex, newIndex)
+				// bApp.showList.remove(model);
+				// bApp.showList.each(function (model, index) {
+				// 	var ordinal = index
+				// 	if (index >= newIndex)
+				// 		ordinal += 1
+				// 	model.set('ordinal', ordinal)
+				// })
+				// model.set('ordinal', newIndex)
+				// bApp.showList.add(model, {
+				// 	at: newIndex,
+				// 	ignore: true,
+				// })
+				// bApp.showList.saveAll()
+			},
 			renderOne: function (item, list, options) {
-				// if (!options.ignore) {
-				var nodeType = "node" + _s.capitalize(item.get("type"))
-				var node = bApp[nodeType]
-				// bApp[nodeType] : bApp["nodeDefault"]
-				var view = new node.view({
-					model: item
-				})
-				this.$showWrapper.append(view.render().el)
-				// }
+				// log("renderOne", item, list, options)
+				if (!options.ignore) {
+					var nodeType = "node" + _s.capitalize(item.get("type"))
+					var node = bApp[nodeType] ? bApp[nodeType] : bApp["nodeDefault"]
+					var view = new node.view({
+						model: item
+					})
+					this.$showWrapper.append(view.render().el)
+				}
 			},
 			renderAll: function () {
 				log("renderAll")
 				bApp.showList.each(this.renderOne, this)
 			},
 			addNewEle: function (e) {
-				var nodeTypeRaw = $(e.target).data("node-type")
-				var nodeType = "node" + _s.capitalize(nodeTypeRaw)
-				var node = bApp[nodeType]
-				// bApp[nodeType] : bApp["nodeDefault"]
+				var nodeType = "node" + _s.capitalize($(e.target).data("node-type"))
+				var node = bApp[nodeType] ? bApp[nodeType] : bApp["nodeDefault"]
 				bApp.showList.create(
-					new node.model({
-						id: "" + nodeTypeRaw + bApp.metaInfo.nextId(),
-					})
+					new node.model
 				)
 			},
 			showPreview: function () {
+				log(bootbox)
 				bootbox.alert({
 					title: '预览',
-					message: $('#showWrapper').html(),
+					message: $('#showWrapper').html()
 				})
-			},
+			}
 		}))()
 		info("loaded")
 	})

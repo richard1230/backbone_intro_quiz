@@ -1,0 +1,7 @@
+#showWrapper {
+	overflow: auto;
+}
+
+#showWrapper img {
+	max-width: 100%;
+}
