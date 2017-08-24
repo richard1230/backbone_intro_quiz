@@ -35,3 +35,14 @@ textarea {
 .btn-action {
 	margin-bottom: 4px!important;
 }
+
+img {
+	max-width: 100%;
+}
+
+/* patch */
+@media (max-width: 767px) {
+	.div_KGGOgv {
+		width: 100px;
+	}
+}
