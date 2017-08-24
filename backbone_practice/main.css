@@ -40,9 +40,14 @@ img {
 	max-width: 100%;
 }
 
+
 /* patch */
+
 @media (max-width: 767px) {
+	.panel-common {
+		overflow: auto;
+	}
 	.div_KGGOgv {
-		width: 100px;
+		width: 80px;
 	}
 }
