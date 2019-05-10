@@ -1,5 +1,5 @@
 ## LIVE DEMO
-https://seognil-lab.github.io/backbone_intro_quiz/index.html
+https://seognil-craft.github.io/backbone_intro_quiz/index.html
 
 ## 说明
 
